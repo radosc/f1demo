@@ -1,0 +1,3 @@
+# Mod load order: one mod folder per line, first to last (later mods win).
+# A leading "-" disables a mod. Remove the "-" below to try the example.
+-example-mod

@@ -1,0 +1,16 @@
+# build output
+/bin/
+/build/
+/dist/
+
+# the demo, its converted data and per-user files
+*.dat
+*.DAT
+/data/
+/user/
+*.log
+
+# local mods (the example mod and the load order file are part of the repository)
+/mods/*
+!/mods/mods.txt
+!/mods/example-mod/

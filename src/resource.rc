@@ -1,0 +1,30 @@
+#include <winuser.h>
+
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "app.manifest"
+
+// engine data that the converter writes to data/ (writeEngineFiles in convert/convert.cpp)
+RULES_CRITICAL RCDATA "res/rules/critical.json"
+RULES_PERKS RCDATA "res/rules/perks.json"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 1,0,0,0
+PRODUCTVERSION 1,0,0,0
+FILEOS 0x40004
+FILETYPE 0x1
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "FileDescription", "Fallout Demo HD - native x64 engine for the 1997 Fallout demo"
+            VALUE "FileVersion", "1.0.0"
+            VALUE "ProductName", "Fallout Demo HD"
+            VALUE "ProductVersion", "1.0.0"
+            VALUE "OriginalFilename", "FalloutDemoHD.exe"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

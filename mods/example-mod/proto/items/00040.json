@@ -1,0 +1,51 @@
+{
+  "pid": "0x00000028",
+  "name": "Stimpak",
+  "messageId": 4000,
+  "fid": "0x0000000F",
+  "flags": [
+    "flat"
+  ],
+  "extFlags": [
+    "canUseOn",
+    "canLook",
+    "canPickUp"
+  ],
+  "lightDistance": 0,
+  "lightIntensity": 0,
+  "script": null,
+  "itemType": "drug",
+  "material": "metal",
+  "size": 0,
+  "weight": 1,
+  "cost": 100,
+  "inventoryFid": "0x0700001D",
+  "soundId": 0,
+  "drug": {
+    "stats": [
+      35,
+      -1,
+      -1
+    ],
+    "amount": [
+      20,
+      0,
+      0
+    ],
+    "duration1": 0,
+    "amount1": [
+      0,
+      0,
+      0
+    ],
+    "duration2": 0,
+    "amount2": [
+      0,
+      0,
+      0
+    ],
+    "addictionChance": 0,
+    "withdrawalEffect": 0,
+    "withdrawalOnset": 0
+  }
+}

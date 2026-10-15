@@ -1,0 +1,1240 @@
+{
+  "comment": "Fallout 1 critical hit effects, extracted from the fallout1-ce reference (combat.cc: crit_succ_eff, pc_crit_succ_eff, attack_crit_success). tables[killType][hitLocation] (used for every non-player defender, by the defender's kill type) and player[hitLocation] (used when the defender is the player) each hold 6 entries indexed by effect level 0-5 (see effectLevelThresholds). damageMultiplier is in halves: a normal hit uses 2 and a critical replaces it with this value; per round damage = (weapon damage + Bonus Ranged Damage) * damageMultiplier / 2 (integer division), then * difficulty % / 100, then - DT, then - DR %, so 2 = x1, 3 = x1.5, 4 = x2, 5 = x2.5, 6 = x3, 8 = x4. flags: DAM_* effects always added to the defender (bit values in flagNames; 'bypass' = the target's DT and DR count as 0 unless the damage type is EMP). check: the reference's 'massive critical' roll; if check.stat is not null the defender rolls 1d10 and fails when the roll is greater than (that stat + check.modifier), then check.flags are added too and checkFailMessage replaces message; with stat null the check (modifier, flags, checkFailMessage) is ignored. message / checkFailMessage are combat.msg ids of the text appended to the critical hit line (verbose combat messages only). statNames maps the reference stat index 0-6 to the names used in check.stat. hitLocationPenalty is added to the to-hit chance (halved for melee and unarmed attacks) and subtracted from the critical chance (so an aimed shot gains +|penalty| % critical chance). 'uncalled' rows are never used by the reference: compute_attack turns an uncalled target location into torso before the critical roll.",
+  "flagNames": {
+    "knockedOut": 1,
+    "knockedDown": 2,
+    "cripLegLeft": 4,
+    "cripLegRight": 8,
+    "cripArmLeft": 16,
+    "cripArmRight": 32,
+    "blind": 64,
+    "dead": 128,
+    "hit": 256,
+    "critical": 512,
+    "onFire": 1024,
+    "bypass": 2048,
+    "explode": 4096,
+    "destroy": 8192,
+    "drop": 16384,
+    "loseTurn": 32768,
+    "hitSelf": 65536,
+    "loseAmmo": 131072,
+    "dud": 262144,
+    "hurtSelf": 524288,
+    "randomHit": 1048576,
+    "cripRandom": 2097152,
+    "backwash": 4194304,
+    "performReverse": 8388608
+  },
+  "statNames": ["ST", "PE", "EN", "CH", "IN", "AG", "LK"],
+  "hitLocations": ["head", "leftArm", "rightArm", "torso", "rightLeg", "leftLeg", "eyes", "groin", "uncalled"],
+  "hitLocationPenalty": {
+    "head": -40,
+    "leftArm": -30,
+    "rightArm": -30,
+    "torso": 0,
+    "rightLeg": -20,
+    "leftLeg": -20,
+    "eyes": -60,
+    "groin": -30,
+    "uncalled": 0
+  },
+  "effectLevelThresholds": {
+    "note": "Reference attack_crit_success(): roll = random(1..100) + the attacker's Better Criticals stat (base 0; the Better Criticals perk adds +20, the Heavy Handed trait subtracts 30, so the roll can fall below 1 or above 100). The effect level is the band whose inclusive [minRoll, maxRoll] contains the roll (null = unbounded): roll <= 20 -> 0, 21-45 -> 1, 46-70 -> 2, 71-90 -> 3, 91-100 -> 4, >= 101 -> 5, so level 5 needs a positive Better Criticals bonus. Exception: a defender with PID 0x01000008 is immune; the critical becomes a normal hit (multiplier 2, no table lookup).",
+    "levels": [
+      {"level": 0, "minRoll": null, "maxRoll": 20},
+      {"level": 1, "minRoll": 21, "maxRoll": 45},
+      {"level": 2, "minRoll": 46, "maxRoll": 70},
+      {"level": 3, "minRoll": 71, "maxRoll": 90},
+      {"level": 4, "minRoll": 91, "maxRoll": 100},
+      {"level": 5, "minRoll": 101, "maxRoll": null}
+    ]
+  },
+  "killTypes": ["man", "woman", "child", "superMutant", "ghoul", "brahmin", "radscorpion", "rat", "floater", "centaur", "robot", "dog", "mantis", "deathClaw", "plant"],
+  "tables": {
+    "man": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5002, "checkFailMessage": 5003},
+        {"damageMultiplier": 5, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedOut"]}, "message": 5002, "checkFailMessage": 5003},
+        {"damageMultiplier": 5, "flags": ["knockedDown", "bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedOut"]}, "message": 5004, "checkFailMessage": 5003},
+        {"damageMultiplier": 6, "flags": ["knockedOut", "bypass"], "check": {"stat": "LK", "modifier": 0, "flags": ["blind"]}, "message": 5005, "checkFailMessage": 5006},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5007, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5008, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5009, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["cripArmLeft"]}, "message": 5010, "checkFailMessage": 5011},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5012, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5012, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5013, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5008, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5009, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["cripArmRight"]}, "message": 5014, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5015, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5015, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5013, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5017, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5019, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5019, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5020, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5021, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5023, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5023, "checkFailMessage": 5024},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -3, "flags": ["cripLegRight"]}, "message": 5023, "checkFailMessage": 5024},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5025, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5025, "checkFailMessage": 5026},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5026, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5023, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 5023, "checkFailMessage": 5024},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -3, "flags": ["cripLegLeft"]}, "message": 5023, "checkFailMessage": 5024},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5025, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5025, "checkFailMessage": 5026},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5026, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "LK", "modifier": 4, "flags": ["blind"]}, "message": 5027, "checkFailMessage": 5028},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "LK", "modifier": 3, "flags": ["blind"]}, "message": 5029, "checkFailMessage": 5028},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "LK", "modifier": 2, "flags": ["blind"]}, "message": 5029, "checkFailMessage": 5028},
+        {"damageMultiplier": 6, "flags": ["blind", "bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5030, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["knockedOut", "blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5031, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5032, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5033, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedDown"]}, "message": 5034, "checkFailMessage": 5035},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedOut"]}, "message": 5035, "checkFailMessage": 5036},
+        {"damageMultiplier": 3, "flags": ["knockedOut"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5036, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5035, "checkFailMessage": 5036},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5037, "checkFailMessage": 5000}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5017, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5018, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5019, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5020, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5021, "checkFailMessage": 5000}
+      ]
+    },
+    "woman": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5101, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5102, "checkFailMessage": 5103},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedOut"]}, "message": 5102, "checkFailMessage": 5103},
+        {"damageMultiplier": 6, "flags": ["knockedDown", "bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedOut"]}, "message": 5104, "checkFailMessage": 5103},
+        {"damageMultiplier": 6, "flags": ["knockedOut", "bypass"], "check": {"stat": "LK", "modifier": 0, "flags": ["blind"]}, "message": 5105, "checkFailMessage": 5106},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5107, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5108, "checkFailMessage": 5100},
+        {"damageMultiplier": 3, "flags": ["loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5109, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["cripArmLeft"]}, "message": 5110, "checkFailMessage": 5111},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["cripArmLeft"]}, "message": 5110, "checkFailMessage": 5111},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5112, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5113, "checkFailMessage": 5100}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5108, "checkFailMessage": 5100},
+        {"damageMultiplier": 3, "flags": ["loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5109, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["cripArmRight"]}, "message": 5114, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["cripArmRight"]}, "message": 5114, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5115, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5113, "checkFailMessage": 5100}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5116, "checkFailMessage": 5100},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5117, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5119, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5119, "checkFailMessage": 5100},
+        {"damageMultiplier": 6, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5120, "checkFailMessage": 5100},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5121, "checkFailMessage": 5100}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5123, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5123, "checkFailMessage": 5124},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -3, "flags": ["cripLegRight"]}, "message": 5123, "checkFailMessage": 5124},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5125, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5125, "checkFailMessage": 5126},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5126, "checkFailMessage": 5100}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5123, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 5123, "checkFailMessage": 5124},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -3, "flags": ["cripLegLeft"]}, "message": 5123, "checkFailMessage": 5124},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5125, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5125, "checkFailMessage": 5126},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5126, "checkFailMessage": 5100}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "LK", "modifier": 4, "flags": ["blind"]}, "message": 5127, "checkFailMessage": 5128},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "LK", "modifier": 3, "flags": ["blind"]}, "message": 5129, "checkFailMessage": 5128},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "LK", "modifier": 2, "flags": ["blind"]}, "message": 5129, "checkFailMessage": 5128},
+        {"damageMultiplier": 6, "flags": ["blind", "bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5130, "checkFailMessage": 5100},
+        {"damageMultiplier": 8, "flags": ["knockedOut", "blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5131, "checkFailMessage": 5100},
+        {"damageMultiplier": 8, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5132, "checkFailMessage": 5100}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5133, "checkFailMessage": 5100},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown"]}, "message": 5133, "checkFailMessage": 5134},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5134, "checkFailMessage": 5135},
+        {"damageMultiplier": 3, "flags": ["knockedOut"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5135, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5134, "checkFailMessage": 5135},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5135, "checkFailMessage": 5100}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5116, "checkFailMessage": 5100},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5117, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5119, "checkFailMessage": 5100},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5119, "checkFailMessage": 5100},
+        {"damageMultiplier": 6, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5120, "checkFailMessage": 5100},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5121, "checkFailMessage": 5100}
+      ]
+    },
+    "child": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5200, "checkFailMessage": 5201},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -2, "flags": ["knockedOut"]}, "message": 5202, "checkFailMessage": 5203},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -2, "flags": ["knockedOut"]}, "message": 5202, "checkFailMessage": 5203},
+        {"damageMultiplier": 6, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5203, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5203, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5204, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5205, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["loseTurn"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmLeft"]}, "message": 5206, "checkFailMessage": 5207},
+        {"damageMultiplier": 4, "flags": ["loseTurn"], "check": {"stat": "EN", "modifier": -2, "flags": ["cripArmLeft"]}, "message": 5206, "checkFailMessage": 5207},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5208, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5208, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5208, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5209, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["loseTurn"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmRight"]}, "message": 5206, "checkFailMessage": 5207},
+        {"damageMultiplier": 4, "flags": ["loseTurn"], "check": {"stat": "EN", "modifier": -2, "flags": ["cripArmRight"]}, "message": 5206, "checkFailMessage": 5207},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5208, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5208, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5208, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5210, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5211, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5212, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5212, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5213, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5214, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5215, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": ["cripArmRight", "blind", "onFire", "explode"]}, "message": 5000, "checkFailMessage": 0},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": ["cripArmRight", "blind", "onFire", "explode"]}, "message": 5000, "checkFailMessage": 0},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5217, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5217, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5217, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5215, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": ["cripArmRight", "blind", "onFire", "explode"]}, "message": 5000, "checkFailMessage": 0},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": ["cripArmRight", "blind", "onFire", "explode"]}, "message": 5000, "checkFailMessage": 0},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5217, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5217, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5217, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "LK", "modifier": 5, "flags": ["blind"]}, "message": 5218, "checkFailMessage": 5219},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "LK", "modifier": 2, "flags": ["blind"]}, "message": 5220, "checkFailMessage": 5221},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "LK", "modifier": -1, "flags": ["blind"]}, "message": 5220, "checkFailMessage": 5221},
+        {"damageMultiplier": 6, "flags": ["blind", "bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5222, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["knockedOut", "blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5223, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5224, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5225, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5225, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5226, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5226, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5226, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5226, "checkFailMessage": 5000}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5210, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5211, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5211, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5212, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5213, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5214, "checkFailMessage": 5000}
+      ]
+    },
+    "superMutant": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5300, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -1, "flags": ["knockedDown"]}, "message": 5301, "checkFailMessage": 5302},
+        {"damageMultiplier": 5, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -4, "flags": ["knockedDown"]}, "message": 5301, "checkFailMessage": 5302},
+        {"damageMultiplier": 5, "flags": ["knockedDown", "bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedOut"]}, "message": 5302, "checkFailMessage": 5303},
+        {"damageMultiplier": 6, "flags": ["knockedDown", "bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5302, "checkFailMessage": 5303},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5304, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5300, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["loseTurn"]}, "message": 5300, "checkFailMessage": 5306},
+        {"damageMultiplier": 4, "flags": ["bypass", "loseTurn"], "check": {"stat": "EN", "modifier": -1, "flags": ["cripArmLeft"]}, "message": 5307, "checkFailMessage": 5308},
+        {"damageMultiplier": 4, "flags": ["bypass", "loseTurn"], "check": {"stat": "EN", "modifier": -3, "flags": ["cripArmLeft"]}, "message": 5307, "checkFailMessage": 5308},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5308, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5308, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5300, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["loseTurn"]}, "message": 5300, "checkFailMessage": 5006},
+        {"damageMultiplier": 4, "flags": ["bypass", "loseTurn"], "check": {"stat": "EN", "modifier": -1, "flags": ["cripArmRight"]}, "message": 5307, "checkFailMessage": 5309},
+        {"damageMultiplier": 4, "flags": ["bypass", "loseTurn"], "check": {"stat": "EN", "modifier": -3, "flags": ["cripArmRight"]}, "message": 5307, "checkFailMessage": 5309},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5309, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5309, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5300, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5301, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5302, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5302, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5310, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5311, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5300, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5300, "checkFailMessage": 5312},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -3, "flags": ["cripLegRight"]}, "message": 5312, "checkFailMessage": 5313},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5313, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5314, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5315, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5300, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5300, "checkFailMessage": 5312},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -3, "flags": ["cripLegLeft"]}, "message": 5312, "checkFailMessage": 5313},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5313, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5314, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5315, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5300, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "LK", "modifier": 5, "flags": ["blind"]}, "message": 5316, "checkFailMessage": 5317},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "LK", "modifier": 3, "flags": ["blind"]}, "message": 5316, "checkFailMessage": 5317},
+        {"damageMultiplier": 6, "flags": ["bypass", "loseTurn"], "check": {"stat": "LK", "modifier": 0, "flags": ["blind"]}, "message": 5318, "checkFailMessage": 5319},
+        {"damageMultiplier": 8, "flags": ["knockedOut", "blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5320, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5321, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5300, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "LK", "modifier": 0, "flags": ["bypass"]}, "message": 5300, "checkFailMessage": 5017},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -2, "flags": ["knockedDown"]}, "message": 5301, "checkFailMessage": 5302},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5312, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5302, "checkFailMessage": 5303},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5303, "checkFailMessage": 5000}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5300, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5301, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5302, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5302, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5310, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5311, "checkFailMessage": 5000}
+      ]
+    },
+    "ghoul": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5400, "checkFailMessage": 5003},
+        {"damageMultiplier": 5, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -1, "flags": ["knockedOut"]}, "message": 5400, "checkFailMessage": 5003},
+        {"damageMultiplier": 5, "flags": ["knockedDown", "bypass"], "check": {"stat": "EN", "modifier": -2, "flags": ["knockedOut"]}, "message": 5004, "checkFailMessage": 5005},
+        {"damageMultiplier": 6, "flags": ["knockedOut", "bypass"], "check": {"stat": "ST", "modifier": 0, "flags": []}, "message": 5005, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5401, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["drop", "loseTurn"]}, "message": 5001, "checkFailMessage": 5402},
+        {"damageMultiplier": 4, "flags": ["drop", "loseTurn"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmLeft"]}, "message": 5402, "checkFailMessage": 5012},
+        {"damageMultiplier": 4, "flags": ["bypass", "drop", "loseTurn"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmLeft"]}, "message": 5403, "checkFailMessage": 5404},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass", "drop"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5404, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass", "drop"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5404, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["drop", "loseTurn"]}, "message": 5001, "checkFailMessage": 5402},
+        {"damageMultiplier": 4, "flags": ["drop", "loseTurn"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmRight"]}, "message": 5402, "checkFailMessage": 5015},
+        {"damageMultiplier": 4, "flags": ["bypass", "drop", "loseTurn"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmRight"]}, "message": 5403, "checkFailMessage": 5404},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass", "drop"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5404, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass", "drop"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5404, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5017, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5018, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5004, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5003, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5007, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5023},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5023, "checkFailMessage": 5024},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5024, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5024, "checkFailMessage": 5026},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5026, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5023},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 5023, "checkFailMessage": 5024},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5024, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5024, "checkFailMessage": 5026},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5026, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "LK", "modifier": 3, "flags": ["blind"]}, "message": 5001, "checkFailMessage": 5405},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "LK", "modifier": 0, "flags": ["blind"]}, "message": 5406, "checkFailMessage": 5407},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "LK", "modifier": -3, "flags": ["blind"]}, "message": 5406, "checkFailMessage": 5407},
+        {"damageMultiplier": 6, "flags": ["blind", "bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5030, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["knockedOut", "blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5031, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5408, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "LK", "modifier": 0, "flags": ["bypass"]}, "message": 5001, "checkFailMessage": 5033},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown"]}, "message": 5033, "checkFailMessage": 5035},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5004, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5035, "checkFailMessage": 5036},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5036, "checkFailMessage": 5000}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5017, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5018, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5004, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedOut", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5003, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5007, "checkFailMessage": 5000}
+      ]
+    },
+    "brahmin": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "EN", "modifier": 2, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 5500},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "EN", "modifier": -1, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 5500},
+        {"damageMultiplier": 6, "flags": ["knockedOut"], "check": {"stat": "ST", "modifier": 0, "flags": []}, "message": 5501, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5502, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 5016, "checkFailMessage": 5503},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 5016, "checkFailMessage": 5503},
+        {"damageMultiplier": 4, "flags": ["cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5503, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5503, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5016, "checkFailMessage": 5503},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5016, "checkFailMessage": 5503},
+        {"damageMultiplier": 4, "flags": ["cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5503, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5503, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5504, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5504, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5504, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5505, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5505, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5506, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5016, "checkFailMessage": 5503},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5016, "checkFailMessage": 5503},
+        {"damageMultiplier": 4, "flags": ["cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5503, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5503, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 5016, "checkFailMessage": 5503},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 5016, "checkFailMessage": 5503},
+        {"damageMultiplier": 4, "flags": ["cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5503, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5503, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "LK", "modifier": 0, "flags": ["blind"]}, "message": 5029, "checkFailMessage": 5507},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "LK", "modifier": -3, "flags": ["blind"]}, "message": 5029, "checkFailMessage": 5507},
+        {"damageMultiplier": 6, "flags": ["blind", "bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5508, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["knockedOut", "blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5509, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5510, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5511, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5511, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5512, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5512, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5513, "checkFailMessage": 5000}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5504, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5504, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5504, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5505, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5505, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5506, "checkFailMessage": 5000}
+      ]
+    },
+    "radscorpion": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 3, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5600},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5600},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5600},
+        {"damageMultiplier": 6, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5600, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5601, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmLeft"]}, "message": 5016, "checkFailMessage": 5602},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5602, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5602, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 2, "flags": ["cripArmRight"]}, "message": 5016, "checkFailMessage": 5603},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmRight"]}, "message": 5016, "checkFailMessage": 5603},
+        {"damageMultiplier": 4, "flags": ["cripArmRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5603, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5604, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5605, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5605, "checkFailMessage": 5606},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5607, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 2, "flags": []}, "message": 5001, "checkFailMessage": 5600},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5600, "checkFailMessage": 5608},
+        {"damageMultiplier": 4, "flags": ["cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5609, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5608, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5608, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 2, "flags": []}, "message": 5001, "checkFailMessage": 5600},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 5600, "checkFailMessage": 5008},
+        {"damageMultiplier": 4, "flags": ["cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5609, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5608, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5608, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "AG", "modifier": 3, "flags": ["blind"]}, "message": 5001, "checkFailMessage": 5610},
+        {"damageMultiplier": 6, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["blind"]}, "message": 5016, "checkFailMessage": 5610},
+        {"damageMultiplier": 6, "flags": [], "check": {"stat": "AG", "modifier": -3, "flags": ["blind"]}, "message": 5016, "checkFailMessage": 5610},
+        {"damageMultiplier": 8, "flags": [], "check": {"stat": "AG", "modifier": -3, "flags": ["blind"]}, "message": 5611, "checkFailMessage": 5612},
+        {"damageMultiplier": 8, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5613, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5614, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5614, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5614, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedOut"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5615, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedOut"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5615, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5616, "checkFailMessage": 5000}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5604, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5605, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5605, "checkFailMessage": 5606},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5607, "checkFailMessage": 5000}
+      ]
+    },
+    "rat": {
+      "head": [
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5700, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5700, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5701, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5701, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5701, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5701, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": ["cripArmLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5703, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["cripArmLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5703, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["cripArmLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5703, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5703, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5703, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5703, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": ["cripArmRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5705, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["cripArmRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5705, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["cripArmRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5705, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5705, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5705, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5705, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5706, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5707, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5707, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5707, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5707, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5708, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": ["cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5709, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5709, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5709, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5709, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5709, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5709, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": ["cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5710, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5710, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5710, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5710, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5710, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5710, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5711, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5712, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5712, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5712, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5712, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5712, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5711, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5711, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5712, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5712, "checkFailMessage": 5000}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5706, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5707, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5707, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5707, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5707, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5708, "checkFailMessage": 5000}
+      ]
+    },
+    "floater": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5800},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "AG", "modifier": -3, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 5800},
+        {"damageMultiplier": 5, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedOut"]}, "message": 5800, "checkFailMessage": 5801},
+        {"damageMultiplier": 6, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedOut"]}, "message": 5800, "checkFailMessage": 5801},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5802, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["loseTurn"]}, "message": 5001, "checkFailMessage": 5803},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["loseTurn"]}, "message": 5001, "checkFailMessage": 5803},
+        {"damageMultiplier": 3, "flags": ["bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5804, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5804, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5805, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["loseTurn"]}, "message": 5001, "checkFailMessage": 5803},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["loseTurn"]}, "message": 5001, "checkFailMessage": 5803},
+        {"damageMultiplier": 3, "flags": ["bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5804, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5804, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5805, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5800},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": -2, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5800},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5800, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5804, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5805, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 1, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5800},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "AG", "modifier": -1, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5800},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -1, "flags": ["cripLegLeft", "cripLegRight"]}, "message": 5800, "checkFailMessage": 5806},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["cripLegLeft", "cripLegRight"]}, "message": 5804, "checkFailMessage": 5806},
+        {"damageMultiplier": 6, "flags": ["dead", "onFire"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5807, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5803, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5803, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "cripArmRight", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5808, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "cripArmRight", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5808, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5809, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["blind"]}, "message": 5016, "checkFailMessage": 5810},
+        {"damageMultiplier": 5, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["blind"]}, "message": 5809, "checkFailMessage": 5810},
+        {"damageMultiplier": 6, "flags": ["blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5810, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["knockedDown", "blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5801, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5800},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5800},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5800, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5800, "checkFailMessage": 5000}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5800},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": -2, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5800},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5800, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5804, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5805, "checkFailMessage": 5000}
+      ]
+    },
+    "centaur": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown", "loseTurn"]}, "message": 5016, "checkFailMessage": 5900},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedDown", "loseTurn"]}, "message": 5016, "checkFailMessage": 5900},
+        {"damageMultiplier": 5, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedDown", "loseTurn"]}, "message": 5901, "checkFailMessage": 5900},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedDown", "loseTurn"]}, "message": 5901, "checkFailMessage": 5900},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5902, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["loseTurn"]}, "message": 5016, "checkFailMessage": 5903},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmLeft"]}, "message": 5016, "checkFailMessage": 5904},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5904, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5905, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["loseTurn"]}, "message": 5016, "checkFailMessage": 5903},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmRight"]}, "message": 5016, "checkFailMessage": 5904},
+        {"damageMultiplier": 4, "flags": ["cripArmRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5904, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5905, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5901, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "EN", "modifier": 2, "flags": []}, "message": 5901, "checkFailMessage": 5900},
+        {"damageMultiplier": 5, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5900, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5902, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5900, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5900, "checkFailMessage": 5906},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5906, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5906, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5907, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5900, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 5900, "checkFailMessage": 5906},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5906, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5906, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5907, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 1, "flags": ["blind"]}, "message": 5001, "checkFailMessage": 5908},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -1, "flags": ["blind"]}, "message": 5901, "checkFailMessage": 5908},
+        {"damageMultiplier": 6, "flags": ["blind", "bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5909, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["knockedOut", "blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5910, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5911, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 2, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5912, "checkFailMessage": 5000},
+        {"damageMultiplier": 2, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5912, "checkFailMessage": 5000},
+        {"damageMultiplier": 2, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5912, "checkFailMessage": 5000},
+        {"damageMultiplier": 2, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5912, "checkFailMessage": 5000},
+        {"damageMultiplier": 2, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5912, "checkFailMessage": 5000},
+        {"damageMultiplier": 2, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5912, "checkFailMessage": 5000}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5901, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "EN", "modifier": 2, "flags": []}, "message": 5901, "checkFailMessage": 5900},
+        {"damageMultiplier": 5, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5900, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5902, "checkFailMessage": 5000}
+      ]
+    },
+    "robot": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6001, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6002, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6003, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmLeft"]}, "message": 6000, "checkFailMessage": 6004},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["cripArmLeft"]}, "message": 6000, "checkFailMessage": 6004},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6004, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmRight"]}, "message": 6004, "checkFailMessage": 6005}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmRight"]}, "message": 6000, "checkFailMessage": 6004},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["cripArmRight"]}, "message": 6000, "checkFailMessage": 6004},
+        {"damageMultiplier": 4, "flags": ["cripArmRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6004, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["cripArmRight"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmLeft"]}, "message": 6004, "checkFailMessage": 6005}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6006, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6007, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6008, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6009, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6010, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6007, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 6000, "checkFailMessage": 6004},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["cripLegRight"]}, "message": 6007, "checkFailMessage": 6004},
+        {"damageMultiplier": 4, "flags": ["cripLegRight"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown"]}, "message": 6004, "checkFailMessage": 6011},
+        {"damageMultiplier": 4, "flags": ["cripLegRight"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedDown", "cripLegLeft"]}, "message": 6004, "checkFailMessage": 6012}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6007, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 6000, "checkFailMessage": 6004},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["cripLegLeft"]}, "message": 6007, "checkFailMessage": 6004},
+        {"damageMultiplier": 4, "flags": ["cripLegLeft"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown"]}, "message": 6004, "checkFailMessage": 6011},
+        {"damageMultiplier": 4, "flags": ["cripLegLeft"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedDown", "cripLegRight"]}, "message": 6004, "checkFailMessage": 6012}
+      ],
+      "eyes": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["blind"]}, "message": 6000, "checkFailMessage": 6013},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["blind"]}, "message": 6000, "checkFailMessage": 6013},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["blind"]}, "message": 6000, "checkFailMessage": 6013},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -6, "flags": ["blind"]}, "message": 6000, "checkFailMessage": 6013},
+        {"damageMultiplier": 3, "flags": ["blind"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6013, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -1, "flags": ["knockedDown", "loseTurn"]}, "message": 6000, "checkFailMessage": 6002},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["knockedDown", "loseTurn"]}, "message": 6000, "checkFailMessage": 6002},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "loseTurn"], "check": {"stat": "EN", "modifier": 0, "flags": []}, "message": 6002, "checkFailMessage": 6003},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "loseTurn"], "check": {"stat": "EN", "modifier": -4, "flags": []}, "message": 6002, "checkFailMessage": 6003}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6000, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6006, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6007, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6008, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6009, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6010, "checkFailMessage": 5000}
+      ]
+    },
+    "dog": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 6100},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 6100},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -6, "flags": ["cripArmLeft", "cripArmRight"]}, "message": 5016, "checkFailMessage": 6101},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedOut"]}, "message": 6100, "checkFailMessage": 6102},
+        {"damageMultiplier": 4, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6103, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -1, "flags": ["cripLegLeft"]}, "message": 5001, "checkFailMessage": 6104},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["cripLegLeft"]}, "message": 5001, "checkFailMessage": 6104},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -5, "flags": ["knockedDown", "cripLegLeft"]}, "message": 5001, "checkFailMessage": 6105},
+        {"damageMultiplier": 3, "flags": ["cripLegLeft"], "check": {"stat": "AG", "modifier": -1, "flags": ["knockedDown"]}, "message": 6104, "checkFailMessage": 6105},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6105, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -1, "flags": ["cripLegRight"]}, "message": 5001, "checkFailMessage": 6104},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["cripLegRight"]}, "message": 5001, "checkFailMessage": 6104},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -5, "flags": ["knockedDown", "cripLegRight"]}, "message": 5001, "checkFailMessage": 6105},
+        {"damageMultiplier": 3, "flags": ["cripLegRight"], "check": {"stat": "AG", "modifier": -1, "flags": ["knockedDown"]}, "message": 6104, "checkFailMessage": 6105},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6105, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": -1, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 6100},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "AG", "modifier": -3, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 6100},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6100, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6103, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 1, "flags": ["cripLegRight"]}, "message": 5001, "checkFailMessage": 6104},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5001, "checkFailMessage": 6104},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["cripLegRight"]}, "message": 5001, "checkFailMessage": 6104},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["knockedDown", "cripLegRight"]}, "message": 5001, "checkFailMessage": 6105},
+        {"damageMultiplier": 3, "flags": ["cripLegRight"], "check": {"stat": "AG", "modifier": -1, "flags": ["knockedDown"]}, "message": 6104, "checkFailMessage": 6105},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6105, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 1, "flags": ["cripLegLeft"]}, "message": 5001, "checkFailMessage": 6104},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 5001, "checkFailMessage": 6104},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["cripLegLeft"]}, "message": 5001, "checkFailMessage": 6104},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["knockedDown", "cripLegLeft"]}, "message": 5001, "checkFailMessage": 6105},
+        {"damageMultiplier": 3, "flags": ["cripLegLeft"], "check": {"stat": "AG", "modifier": -1, "flags": ["knockedDown"]}, "message": 6104, "checkFailMessage": 6105},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6105, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5018, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5018, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "EN", "modifier": 3, "flags": ["blind"]}, "message": 5018, "checkFailMessage": 6106},
+        {"damageMultiplier": 8, "flags": ["bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["blind"]}, "message": 5018, "checkFailMessage": 6106},
+        {"damageMultiplier": 8, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6107, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": -2, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 6100},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "AG", "modifier": -5, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 6100},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6100, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6103, "checkFailMessage": 5000}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": -1, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 6100},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "AG", "modifier": -3, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 6100},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6100, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6103, "checkFailMessage": 5000}
+      ]
+    },
+    "mantis": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 6200},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 6200},
+        {"damageMultiplier": 5, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -1, "flags": ["knockedOut"]}, "message": 6200, "checkFailMessage": 6201},
+        {"damageMultiplier": 6, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedOut"]}, "message": 6200, "checkFailMessage": 6201},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6202, "checkFailMessage": 5000}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmLeft"]}, "message": 5001, "checkFailMessage": 6203},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmLeft"]}, "message": 5001, "checkFailMessage": 6203},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["cripArmLeft"]}, "message": 5001, "checkFailMessage": 6203},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["cripArmLeft"]}, "message": 5016, "checkFailMessage": 6203},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["cripArmLeft"]}, "message": 5016, "checkFailMessage": 6203},
+        {"damageMultiplier": 4, "flags": ["cripArmLeft", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6204, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmRight"]}, "message": 5001, "checkFailMessage": 6203},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmRight"]}, "message": 5001, "checkFailMessage": 6203},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["cripArmRight"]}, "message": 5001, "checkFailMessage": 6203},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["cripArmRight"]}, "message": 5016, "checkFailMessage": 6203},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["cripArmRight"]}, "message": 5016, "checkFailMessage": 6203},
+        {"damageMultiplier": 4, "flags": ["cripArmRight", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6204, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 1000, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["bypass"]}, "message": 5001, "checkFailMessage": 6205},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["bypass"]}, "message": 5001, "checkFailMessage": 6205},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["bypass"]}, "message": 5016, "checkFailMessage": 6205},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["bypass"]}, "message": 5016, "checkFailMessage": 6205},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6206, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 6201},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": -2, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 6201},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "AG", "modifier": -4, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 6201},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 6201, "checkFailMessage": 6203},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -3, "flags": ["cripLegRight"]}, "message": 6201, "checkFailMessage": 6203},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6207, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 6201},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": -3, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 6201},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -2, "flags": ["cripLegLeft"]}, "message": 6201, "checkFailMessage": 6208},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -2, "flags": ["cripLegLeft"]}, "message": 6201, "checkFailMessage": 6208},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -5, "flags": ["cripLegLeft"]}, "message": 6201, "checkFailMessage": 6208},
+        {"damageMultiplier": 3, "flags": ["knockedDown", "cripLegLeft"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6208, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["loseTurn"]}, "message": 6205, "checkFailMessage": 6209},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["loseTurn"]}, "message": 6205, "checkFailMessage": 6209},
+        {"damageMultiplier": 6, "flags": ["bypass", "loseTurn"], "check": {"stat": "EN", "modifier": -3, "flags": ["blind"]}, "message": 6209, "checkFailMessage": 6210},
+        {"damageMultiplier": 8, "flags": ["knockedDown", "bypass", "loseTurn"], "check": {"stat": "EN", "modifier": -3, "flags": ["blind"]}, "message": 6209, "checkFailMessage": 6210},
+        {"damageMultiplier": 8, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6202, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6205, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6209, "checkFailMessage": 5000}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 1000, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["bypass"]}, "message": 5001, "checkFailMessage": 6205},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["bypass"]}, "message": 5001, "checkFailMessage": 6205},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["bypass"]}, "message": 5016, "checkFailMessage": 6205},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["bypass"]}, "message": 5016, "checkFailMessage": 6205},
+        {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6206, "checkFailMessage": 5000}
+      ]
+    },
+    "deathClaw": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 5023},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 5023},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "EN", "modifier": -5, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 5023},
+        {"damageMultiplier": 6, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["knockedDown", "loseTurn"]}, "message": 5016, "checkFailMessage": 5004},
+        {"damageMultiplier": 6, "flags": [], "check": {"stat": "EN", "modifier": -5, "flags": ["knockedDown", "loseTurn"]}, "message": 5016, "checkFailMessage": 5004}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmLeft"]}, "message": 5001, "checkFailMessage": 5011},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["cripArmLeft"]}, "message": 5001, "checkFailMessage": 5011},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["cripArmLeft"]}, "message": 5001, "checkFailMessage": 5011},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -6, "flags": ["cripArmLeft"]}, "message": 5001, "checkFailMessage": 5011},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -8, "flags": ["cripArmLeft"]}, "message": 5001, "checkFailMessage": 5011}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmRight"]}, "message": 5001, "checkFailMessage": 5014},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -2, "flags": ["cripArmRight"]}, "message": 5001, "checkFailMessage": 5014},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -4, "flags": ["cripArmRight"]}, "message": 5001, "checkFailMessage": 5014},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -6, "flags": ["cripArmRight"]}, "message": 5001, "checkFailMessage": 5014},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -8, "flags": ["cripArmRight"]}, "message": 5001, "checkFailMessage": 5014}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -1, "flags": ["bypass"]}, "message": 5001, "checkFailMessage": 6300},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -1, "flags": ["bypass"]}, "message": 5016, "checkFailMessage": 6300},
+        {"damageMultiplier": 5, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5004, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": ["knockedDown", "bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5005, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5004},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5001, "checkFailMessage": 5004},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -2, "flags": ["cripLegRight"]}, "message": 5001, "checkFailMessage": 5004},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -4, "flags": ["cripLegRight"]}, "message": 5016, "checkFailMessage": 5022},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -5, "flags": ["cripLegRight"]}, "message": 5023, "checkFailMessage": 5024},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -6, "flags": ["cripLegRight"]}, "message": 5023, "checkFailMessage": 5024}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5001, "checkFailMessage": 5004},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 5001, "checkFailMessage": 5004},
+        {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -2, "flags": ["cripLegRight"]}, "message": 5001, "checkFailMessage": 5004},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -4, "flags": ["cripLegRight"]}, "message": 5016, "checkFailMessage": 5022},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -5, "flags": ["cripLegRight"]}, "message": 5023, "checkFailMessage": 5024},
+        {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": -6, "flags": ["cripLegRight"]}, "message": 5023, "checkFailMessage": 5024}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -3, "flags": ["loseTurn"]}, "message": 5001, "checkFailMessage": 6301},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -6, "flags": ["loseTurn"]}, "message": 6300, "checkFailMessage": 6301},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -2, "flags": ["blind"]}, "message": 6301, "checkFailMessage": 6302},
+        {"damageMultiplier": 8, "flags": ["blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6302, "checkFailMessage": 5000},
+        {"damageMultiplier": 8, "flags": ["blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6302, "checkFailMessage": 5000}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "AG", "modifier": 0, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 5004},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": "AG", "modifier": -3, "flags": ["knockedDown"]}, "message": 5016, "checkFailMessage": 5004}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5001, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": -1, "flags": ["bypass"]}, "message": 5001, "checkFailMessage": 6300},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5016, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": "EN", "modifier": -1, "flags": ["bypass"]}, "message": 5016, "checkFailMessage": 6300},
+        {"damageMultiplier": 5, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5004, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": ["knockedDown", "bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 5005, "checkFailMessage": 5000}
+      ]
+    },
+    "plant": {
+      "head": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6400, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6401, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6402, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["loseTurn"]}, "message": 6402, "checkFailMessage": 6403},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -6, "flags": ["loseTurn"]}, "message": 6402, "checkFailMessage": 6403}
+      ],
+      "leftArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000}
+      ],
+      "rightArm": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000}
+      ],
+      "torso": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6400, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6401, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6401, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6402, "checkFailMessage": 5000}
+      ],
+      "rightLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000}
+      ],
+      "leftLeg": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000}
+      ],
+      "eyes": [
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6400, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6401, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6402, "checkFailMessage": 5000},
+        {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -4, "flags": ["blind"]}, "message": 6402, "checkFailMessage": 6406},
+        {"damageMultiplier": 6, "flags": ["blind", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6406, "checkFailMessage": 6404}
+      ],
+      "groin": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6402, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6402, "checkFailMessage": 5000},
+        {"damageMultiplier": 5, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -3, "flags": ["loseTurn"]}, "message": 6402, "checkFailMessage": 6403},
+        {"damageMultiplier": 5, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -6, "flags": ["loseTurn"]}, "message": 6402, "checkFailMessage": 6403}
+      ],
+      "uncalled": [
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6405, "checkFailMessage": 5000},
+        {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6400, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6401, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6401, "checkFailMessage": 5000},
+        {"damageMultiplier": 4, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6402, "checkFailMessage": 5000}
+      ]
+    }
+  },
+  "player": {
+    "head": [
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6500, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": "EN", "modifier": 3, "flags": ["knockedDown"]}, "message": 6501, "checkFailMessage": 6503},
+      {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown"]}, "message": 6501, "checkFailMessage": 6503},
+      {"damageMultiplier": 3, "flags": ["knockedDown", "bypass"], "check": {"stat": "EN", "modifier": 2, "flags": ["knockedOut"]}, "message": 6503, "checkFailMessage": 6502},
+      {"damageMultiplier": 3, "flags": ["knockedOut", "bypass"], "check": {"stat": "LK", "modifier": 2, "flags": ["blind"]}, "message": 6502, "checkFailMessage": 6504},
+      {"damageMultiplier": 6, "flags": ["bypass"], "check": {"stat": "EN", "modifier": -2, "flags": ["dead"]}, "message": 6501, "checkFailMessage": 6505}
+    ],
+    "leftArm": [
+      {"damageMultiplier": 2, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6506, "checkFailMessage": 5000},
+      {"damageMultiplier": 2, "flags": ["loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6507, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmLeft"]}, "message": 6508, "checkFailMessage": 6509},
+      {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6501, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6510, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["cripArmLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6510, "checkFailMessage": 5000}
+    ],
+    "rightArm": [
+      {"damageMultiplier": 2, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6506, "checkFailMessage": 5000},
+      {"damageMultiplier": 2, "flags": ["loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6507, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["cripArmRight"]}, "message": 6508, "checkFailMessage": 6509},
+      {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6501, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6511, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["cripArmRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6511, "checkFailMessage": 5000}
+    ],
+    "torso": [
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6512, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6512, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6508, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6503, "checkFailMessage": 5000},
+      {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6503, "checkFailMessage": 5000},
+      {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": "LK", "modifier": 2, "flags": ["dead"]}, "message": 6503, "checkFailMessage": 6513}
+    ],
+    "rightLeg": [
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6512, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6514, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegRight"]}, "message": 6514, "checkFailMessage": 6515},
+      {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6516, "checkFailMessage": 5000},
+      {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6516, "checkFailMessage": 5000},
+      {"damageMultiplier": 4, "flags": ["knockedOut", "cripLegRight", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6517, "checkFailMessage": 5000}
+    ],
+    "leftLeg": [
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6512, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6514, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 0, "flags": ["cripLegLeft"]}, "message": 6514, "checkFailMessage": 6515},
+      {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6516, "checkFailMessage": 5000},
+      {"damageMultiplier": 4, "flags": ["knockedDown", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6516, "checkFailMessage": 5000},
+      {"damageMultiplier": 4, "flags": ["knockedOut", "cripLegLeft", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6517, "checkFailMessage": 5000}
+    ],
+    "eyes": [
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6518, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": "LK", "modifier": 3, "flags": ["blind"]}, "message": 6518, "checkFailMessage": 6519},
+      {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": "LK", "modifier": 3, "flags": ["blind"]}, "message": 6501, "checkFailMessage": 6519},
+      {"damageMultiplier": 4, "flags": ["bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6520, "checkFailMessage": 5000},
+      {"damageMultiplier": 4, "flags": ["blind", "bypass", "loseTurn"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6521, "checkFailMessage": 5000},
+      {"damageMultiplier": 6, "flags": ["dead"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6522, "checkFailMessage": 5000}
+    ],
+    "groin": [
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6523, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": "EN", "modifier": 0, "flags": ["knockedDown"]}, "message": 6523, "checkFailMessage": 6524},
+      {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6524, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 4, "flags": ["knockedOut"]}, "message": 6524, "checkFailMessage": 6525},
+      {"damageMultiplier": 4, "flags": ["knockedDown"], "check": {"stat": "EN", "modifier": 2, "flags": ["knockedOut"]}, "message": 6524, "checkFailMessage": 6525},
+      {"damageMultiplier": 4, "flags": ["knockedOut"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6526, "checkFailMessage": 5000}
+    ],
+    "uncalled": [
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6512, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": [], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6512, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6508, "checkFailMessage": 5000},
+      {"damageMultiplier": 3, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6503, "checkFailMessage": 5000},
+      {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": null, "modifier": 0, "flags": []}, "message": 6503, "checkFailMessage": 5000},
+      {"damageMultiplier": 4, "flags": ["knockedDown", "bypass"], "check": {"stat": "LK", "modifier": 2, "flags": ["dead"]}, "message": 6503, "checkFailMessage": 6513}
+    ]
+  }
+}
